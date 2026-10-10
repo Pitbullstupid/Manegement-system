@@ -1,0 +1,44 @@
+﻿# Tên project Compose: dùng làm tiền tố cho tên network và volume (epwms_postgres_data...)
+name: epwms
+
+services:
+  # ---------- PostgreSQL ----------
+  postgres:
+    image: postgres:16                  # Ghim phiên bản 16, không dùng latest
+    container_name: epwms_postgres
+    restart: unless-stopped             # Tự chạy lại khi bật lại Docker Desktop
+    environment:                        # Compose tự đọc ${...} từ file .env cùng thư mục
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Thiếu DB_PASSWORD trong .env}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "127.0.0.1:${DB_PORT:-5432}:5432"   # cổng máy bạn : cổng trong container
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # Dữ liệu DB nằm ở volume có tên
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]  # Hỏi Postgres đã nhận kết nối chưa
+      interval: 5s                      # Cứ 5 giây kiểm tra một lần
+      timeout: 3s                       # Quá 3 giây coi như thất bại
+      retries: 10                       # Thất bại 10 lần liên tiếp => unhealthy
+      start_period: 5s                  # Cho 5 giây khởi động đầu tiên
+
+  # ---------- Redis ----------
+  redis:
+    image: redis:7                      # Ghim phiên bản 7
+    container_name: epwms_redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]  # Bật AOF để Redis ghi dữ liệu ra đĩa
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data                # Redis lưu file dữ liệu ở /data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]  # Trả PONG là khỏe
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+# Khai báo volume có tên (Docker tự tạo và quản lý)
+volumes:
+  postgres_data:
+  redis_data:

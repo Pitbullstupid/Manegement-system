@@ -1,0 +1,21 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+staticfiles/
+media/
+
+# Node
+node_modules/
+dist/
+
+# Secrets: KHÔNG commit file .env thật
+.env
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
