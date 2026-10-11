@@ -131,6 +131,7 @@ AUTH_USER_MODEL = "accounts.User"
 
 # --- DRF: mặc định mọi API đều cần đăng nhập bằng JWT ---
 REST_FRAMEWORK = {
+    "DEFAULT_THROTTLE_RATES": {"auth": "5/min"},  # rate limit API xác thực
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],

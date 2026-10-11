@@ -4,14 +4,17 @@ from __future__ import annotations
 from typing import Any
 
 from rest_framework import status
-from rest_framework.generics import GenericAPIView, RetrieveAPIView
+from rest_framework.generics import GenericAPIView, ListAPIView, RetrieveAPIView
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from common.otp import OTPCooldownError, OTPError, OTPTooManyAttemptsError
+from common.permissions import IsAdmin
 
 from . import services
+from .models import User
+from .throttles import AuthRateThrottle
 from .serializers import (
     LoginSerializer,
     LoginVerifySerializer,
@@ -57,6 +60,7 @@ class PublicAuthView(ServiceErrorMixin, GenericAPIView):
 
     permission_classes = [AllowAny]
     authentication_classes: list[Any] = []
+    throttle_classes = [AuthRateThrottle]  # 5 lần/phút/IP
 
 
 class RegisterView(PublicAuthView):
@@ -133,3 +137,11 @@ class MeView(RetrieveAPIView):
 
     def get_object(self):  # type: ignore[no-untyped-def]
         return self.request.user
+
+
+class UserListView(ListAPIView):
+    """Danh sách người dùng. Chỉ ADMIN."""
+
+    serializer_class = UserSerializer
+    permission_classes = [IsAdmin]
+    queryset = User.objects.all()

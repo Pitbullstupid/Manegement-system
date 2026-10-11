@@ -12,4 +12,5 @@ urlpatterns = [
     path("refresh/", TokenRefreshView.as_view(), name="token-refresh"),  # có sẵn của simplejwt
     path("logout/", views.LogoutView.as_view(), name="logout"),
     path("me/", views.MeView.as_view(), name="me"),
+    path("users/", views.UserListView.as_view(), name="user-list"),  # chỉ ADMIN
 ]
