@@ -1,4 +1,5 @@
-﻿from pathlib import Path
+﻿from datetime import timedelta
+from pathlib import Path
 
 import environ
 
@@ -25,6 +26,7 @@ INSTALLED_APPS = [
     # Thư viện bên thứ ba
     "rest_framework",
     "corsheaders",
+    "rest_framework_simplejwt.token_blacklist",  # Bảng lưu refresh token đã thu hồi
     "accounts",  # App người dùng: custom User, role
     "common",  # Hàm dùng chung: email, OTP, permissions
 ]
@@ -125,3 +127,24 @@ OTP_RESEND_COOLDOWN = env.int("OTP_RESEND_COOLDOWN", default=60)
 
 # --- Dùng custom User thay cho auth.User mặc định ---
 AUTH_USER_MODEL = "accounts.User"
+
+
+# --- DRF: mặc định mọi API đều cần đăng nhập bằng JWT ---
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+}
+
+# --- JWT: access 15 phút, refresh 7 ngày, thu hồi được ---
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,  # mỗi lần refresh cấp refresh token mới
+    "BLACKLIST_AFTER_ROTATION": True,  # refresh token cũ bị thu hồi ngay
+    "UPDATE_LAST_LOGIN": False,  # ta tự cập nhật last_login sau khi qua bước OTP
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
