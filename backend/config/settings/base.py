@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     # Thư viện bên thứ ba
     "rest_framework",
     "corsheaders",
+    "accounts",  # App người dùng: custom User, role
     "common",  # Hàm dùng chung: email, OTP, permissions
 ]
 
@@ -120,3 +121,7 @@ FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:5173")
 OTP_TTL_SECONDS = env.int("OTP_TTL_SECONDS", default=300)
 OTP_MAX_ATTEMPTS = env.int("OTP_MAX_ATTEMPTS", default=5)
 OTP_RESEND_COOLDOWN = env.int("OTP_RESEND_COOLDOWN", default=60)
+
+
+# --- Dùng custom User thay cho auth.User mặc định ---
+AUTH_USER_MODEL = "accounts.User"
