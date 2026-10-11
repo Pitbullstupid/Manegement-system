@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     # Thư viện bên thứ ba
     "rest_framework",
     "corsheaders",
+    "common",  # Hàm dùng chung: email, OTP, permissions
 ]
 
 MIDDLEWARE = [
@@ -102,3 +103,20 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# --- Email: đọc từ .env. Dev trỏ vào Mailpit, production trỏ vào SMTP thật ---
+EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend")
+EMAIL_HOST = env("EMAIL_HOST", default="localhost")
+EMAIL_PORT = env.int("EMAIL_PORT", default=1025)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=False)
+EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=False)
+EMAIL_TIMEOUT = 10  # giây; SMTP không phản hồi thì báo lỗi, không treo request
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="Project Workflow <no-reply@localhost>")
+
+# --- Link frontend (dùng trong email) và cấu hình OTP (logic OTP làm ở Phase 1) ---
+FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:5173")
+OTP_TTL_SECONDS = env.int("OTP_TTL_SECONDS", default=300)
+OTP_MAX_ATTEMPTS = env.int("OTP_MAX_ATTEMPTS", default=5)
+OTP_RESEND_COOLDOWN = env.int("OTP_RESEND_COOLDOWN", default=60)
