@@ -1,0 +1,11 @@
+﻿{% autoescape off %}Xin chào,
+
+Mã xác thực {{ purpose_label }} của bạn là: {{ code }}
+
+Mã có hiệu lực trong {{ ttl_minutes }} phút và chỉ dùng được một lần.
+Tuyệt đối không chia sẻ mã này cho bất kỳ ai, kể cả người tự xưng là nhân viên hỗ trợ.
+
+Nếu bạn không thực hiện yêu cầu này, hãy bỏ qua email này.
+
+-- Project Workflow
+{% endautoescape %}
