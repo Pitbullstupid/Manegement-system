@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.generics import GenericAPIView, ListAPIView, RetrieveAPIView
 from rest_framework.permissions import AllowAny
@@ -16,6 +17,8 @@ from . import services
 from .models import User
 from .throttles import AuthRateThrottle
 from .serializers import (
+    MessageSerializer,
+    TokenPairSerializer,
     LoginSerializer,
     LoginVerifySerializer,
     LogoutSerializer,
@@ -63,6 +66,7 @@ class PublicAuthView(ServiceErrorMixin, GenericAPIView):
     throttle_classes = [AuthRateThrottle]  # 5 lần/phút/IP
 
 
+@extend_schema(tags=["Auth"], summary="Đăng ký (gửi OTP)", description="Tạo tài khoản chưa kích hoạt và gửi OTP 6 số về email. Bước tiếp theo: verify-email. Đăng ký lại với email chưa kích hoạt sẽ cập nhật tên và mật khẩu.", responses={201: MessageSerializer, 400: MessageSerializer, 429: MessageSerializer})
 class RegisterView(PublicAuthView):
     serializer_class = RegisterSerializer
 
@@ -73,6 +77,7 @@ class RegisterView(PublicAuthView):
         return Response({"detail": "Mã OTP đã được gửi tới email của bạn."}, status=status.HTTP_201_CREATED)
 
 
+@extend_schema(tags=["Auth"], summary="Xác thực email bằng OTP", description="Nhập đúng OTP đăng ký thì tài khoản được kích hoạt. Sai tối đa 5 lần mỗi mã.", responses={200: MessageSerializer, 400: MessageSerializer, 429: MessageSerializer})
 class VerifyEmailView(PublicAuthView):
     serializer_class = VerifyEmailSerializer
 
@@ -84,6 +89,7 @@ class VerifyEmailView(PublicAuthView):
         return Response({"detail": "Kích hoạt tài khoản thành công."})
 
 
+@extend_schema(tags=["Auth"], summary="Gửi lại OTP", description="purpose là REGISTER hoặc LOGIN. Cách nhau tối thiểu 60 giây (429 kèm Retry-After). Luôn trả kết quả giống nhau dù email có tồn tại hay không. OTP đăng nhập chỉ được gửi sau khi đã qua bước 1.", responses={200: MessageSerializer, 429: MessageSerializer})
 class ResendOTPView(PublicAuthView):
     serializer_class = ResendOTPSerializer
 
@@ -95,6 +101,7 @@ class ResendOTPView(PublicAuthView):
         return Response({"detail": "Nếu yêu cầu hợp lệ, mã OTP mới đã được gửi."})
 
 
+@extend_schema(tags=["Auth"], summary="Đăng nhập bước 1/2: mật khẩu", description="Đúng email và mật khẩu thì gửi OTP về email. Chưa trả token. Sai email, sai mật khẩu hoặc chưa kích hoạt đều trả cùng một thông báo 401.", responses={200: MessageSerializer, 401: MessageSerializer, 429: MessageSerializer})
 class LoginView(PublicAuthView):
     """Bước 1: kiểm tra mật khẩu, gửi OTP."""
 
@@ -107,6 +114,7 @@ class LoginView(PublicAuthView):
         return Response({"detail": "Mã OTP đã được gửi tới email của bạn."})
 
 
+@extend_schema(tags=["Auth"], summary="Đăng nhập bước 2/2: OTP", description="Nhập đúng OTP (sau khi qua bước 1) để nhận access và refresh token.", responses={200: TokenPairSerializer, 400: MessageSerializer, 429: MessageSerializer})
 class LoginVerifyView(PublicAuthView):
     """Bước 2: nhập OTP, nhận access + refresh token."""
 
@@ -120,6 +128,7 @@ class LoginVerifyView(PublicAuthView):
         return Response(tokens)
 
 
+@extend_schema(tags=["Auth"], summary="Đăng xuất", description="Thu hồi (blacklist) refresh token. Access token hiện tại vẫn dùng được đến khi hết hạn (tối đa 15 phút).", responses={204: None, 400: MessageSerializer})
 class LogoutView(ServiceErrorMixin, GenericAPIView):
     """Cần access token hợp lệ (permission mặc định IsAuthenticated)."""
 
@@ -132,6 +141,7 @@ class LogoutView(ServiceErrorMixin, GenericAPIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+@extend_schema(tags=["Auth"], summary="Thông tin người dùng hiện tại")
 class MeView(RetrieveAPIView):
     serializer_class = UserSerializer
 
@@ -139,6 +149,7 @@ class MeView(RetrieveAPIView):
         return self.request.user
 
 
+@extend_schema(tags=["Users"], summary="Danh sách người dùng (chỉ ADMIN)", responses={200: UserSerializer(many=True), 403: MessageSerializer})
 class UserListView(ListAPIView):
     """Danh sách người dùng. Chỉ ADMIN."""
 

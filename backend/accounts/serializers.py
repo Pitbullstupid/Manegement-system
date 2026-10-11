@@ -63,3 +63,9 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ["id", "email", "full_name", "department", "role", "is_email_verified", "date_joined"]
         read_only_fields = fields
+
+
+class MessageSerializer(serializers.Serializer):
+    """Chỉ để mô tả response dạng {"detail": "..."} trong Swagger."""
+
+    detail = serializers.CharField()

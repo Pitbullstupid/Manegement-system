@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     # Thư viện bên thứ ba
     "rest_framework",
     "corsheaders",
+    "drf_spectacular",  # Sinh tài liệu OpenAPI/Swagger
     "rest_framework_simplejwt.token_blacklist",  # Bảng lưu refresh token đã thu hồi
     "accounts",  # App người dùng: custom User, role
     "common",  # Hàm dùng chung: email, OTP, permissions
@@ -131,6 +132,7 @@ AUTH_USER_MODEL = "accounts.User"
 
 # --- DRF: mặc định mọi API đều cần đăng nhập bằng JWT ---
 REST_FRAMEWORK = {
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_THROTTLE_RATES": {"auth": "5/min"},  # rate limit API xác thực
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
@@ -148,4 +150,22 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,  # refresh token cũ bị thu hồi ngay
     "UPDATE_LAST_LOGIN": False,  # ta tự cập nhật last_login sau khi qua bước OTP
     "AUTH_HEADER_TYPES": ("Bearer",),
+}
+
+
+# --- Swagger / OpenAPI ---
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Enterprise Project & Workflow Management API",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "DESCRIPTION": (
+        "API quản lý dự án, công việc và quy trình phê duyệt.\n\n"
+        "**Luồng đăng ký:** `register` -> nhận OTP qua email -> `verify-email`.\n\n"
+        "**Luồng đăng nhập hai bước:** `login` (email + mật khẩu, gửi OTP) -> "
+        "`login/verify` (nhập OTP, nhận access + refresh token).\n\n"
+        "**Dùng token:** bấm Authorize, dán access token (không cần gõ chữ Bearer). "
+        "Access sống 15 phút, hết hạn thì gọi `refresh` (không cần OTP). "
+        "Refresh sống 7 ngày, hết hạn thì đăng nhập lại từ bước 1.\n\n"
+        "Các API xác thực công khai bị giới hạn 5 lần/phút/IP (HTTP 429 kèm header Retry-After)."
+    ),
 }
