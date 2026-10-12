@@ -1,6 +1,8 @@
 ﻿from django.conf import settings
 from django.db import connection
 from django_redis import get_redis_connection
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import AllowAny
@@ -27,6 +29,7 @@ def _check_redis() -> dict:
         return {"status": "error", **({"detail": str(exc)} if settings.DEBUG else {})}
 
 
+@extend_schema(tags=["System"], summary="Kiểm tra sức khỏe hệ thống (PostgreSQL, Redis)", responses={200: OpenApiTypes.OBJECT, 503: OpenApiTypes.OBJECT})
 @api_view(["GET"])
 @authentication_classes([])      # Health check công khai, không cần đăng nhập
 @permission_classes([AllowAny])

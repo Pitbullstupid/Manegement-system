@@ -1,4 +1,5 @@
-﻿from pathlib import Path
+﻿from datetime import timedelta
+from pathlib import Path
 
 import environ
 
@@ -25,6 +26,10 @@ INSTALLED_APPS = [
     # Thư viện bên thứ ba
     "rest_framework",
     "corsheaders",
+    "drf_spectacular",  # Sinh tài liệu OpenAPI/Swagger
+    "rest_framework_simplejwt.token_blacklist",  # Bảng lưu refresh token đã thu hồi
+    "accounts",  # App người dùng: custom User, role
+    "common",  # Hàm dùng chung: email, OTP, permissions
 ]
 
 MIDDLEWARE = [
@@ -43,7 +48,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -102,3 +107,65 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# --- Email: đọc từ .env. Dev trỏ vào Mailpit, production trỏ vào SMTP thật ---
+EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend")
+EMAIL_HOST = env("EMAIL_HOST", default="localhost")
+EMAIL_PORT = env.int("EMAIL_PORT", default=1025)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=False)
+EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=False)
+EMAIL_TIMEOUT = 10  # giây; SMTP không phản hồi thì báo lỗi, không treo request
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="Project Workflow <no-reply@localhost>")
+
+# --- Link frontend (dùng trong email) và cấu hình OTP (logic OTP làm ở Phase 1) ---
+FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:5173")
+OTP_TTL_SECONDS = env.int("OTP_TTL_SECONDS", default=300)
+OTP_MAX_ATTEMPTS = env.int("OTP_MAX_ATTEMPTS", default=5)
+OTP_RESEND_COOLDOWN = env.int("OTP_RESEND_COOLDOWN", default=60)
+
+
+# --- Dùng custom User thay cho auth.User mặc định ---
+AUTH_USER_MODEL = "accounts.User"
+
+
+# --- DRF: mặc định mọi API đều cần đăng nhập bằng JWT ---
+REST_FRAMEWORK = {
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_THROTTLE_RATES": {"auth": "5/min"},  # rate limit API xác thực
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+}
+
+# --- JWT: access 15 phút, refresh 7 ngày, thu hồi được ---
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,  # mỗi lần refresh cấp refresh token mới
+    "BLACKLIST_AFTER_ROTATION": True,  # refresh token cũ bị thu hồi ngay
+    "UPDATE_LAST_LOGIN": False,  # ta tự cập nhật last_login sau khi qua bước OTP
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
+
+
+# --- Swagger / OpenAPI ---
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Enterprise Project & Workflow Management API",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "DESCRIPTION": (
+        "API quản lý dự án, công việc và quy trình phê duyệt.\n\n"
+        "**Luồng đăng ký:** `register` -> nhận OTP qua email -> `verify-email`.\n\n"
+        "**Luồng đăng nhập hai bước:** `login` (email + mật khẩu, gửi OTP) -> "
+        "`login/verify` (nhập OTP, nhận access + refresh token).\n\n"
+        "**Dùng token:** bấm Authorize, dán access token (không cần gõ chữ Bearer). "
+        "Access sống 15 phút, hết hạn thì gọi `refresh` (không cần OTP). "
+        "Refresh sống 7 ngày, hết hạn thì đăng nhập lại từ bước 1.\n\n"
+        "Các API xác thực công khai bị giới hạn 5 lần/phút/IP (HTTP 429 kèm header Retry-After)."
+    ),
+}
