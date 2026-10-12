@@ -135,9 +135,9 @@ def resend_otp(*, purpose: str, email: str) -> None:
         OTPCooldownError: gửi lại trong thời gian chờ.
     """
     email = _normalize(email)
-    # Luôn tạo mã (kể cả email lạ) để cooldown hoạt động giống nhau cho mọi email.
-    # Mã của email lạ không ai nhận được, và bước 2 đăng nhập còn cần cờ login_pending nên vô hại.
-    code = issue_otp(purpose, email)
+    # Chỉ phát hành mã khi đủ điều kiện, nếu không kẻ lạ gọi resend sẽ bật cooldown và chặn người thật.
+    # Email lạ hoặc chưa đủ điều kiện vẫn nhận câu trả lời giống hệt (không lộ thông tin).
+    # (mã được tạo ở cuối hàm, chỉ khi eligible)
 
     user = User.objects.filter(email=email).first()
     if user is None:
@@ -154,7 +154,7 @@ def resend_otp(*, purpose: str, email: str) -> None:
         )
 
     if eligible:
-        _send_otp_email(purpose, email, code)
+        _send_otp_email(purpose, email, issue_otp(purpose, email))
 
 
 def login_step1(*, email: str, password: str) -> None:
